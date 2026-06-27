@@ -55,8 +55,8 @@ export default function Home() {
         {/* Stats bar */}
         <div className="flex items-center gap-6 mb-6 text-sm text-gray-400">
           <span><strong className="text-gray-900">{PROBLEMS.length}</strong> 个问题</span>
-          <span><strong className="text-gray-900">10</strong> 个领域</span>
-          <span><strong className="text-gray-900">1</strong> 个国家</span>
+          <span><strong className="text-gray-900">10</strong> 个细分场景</span>
+          <span><strong className="text-gray-900">适合独立开发者</strong></span>
         </div>
 
         {/* Filter bar */}
