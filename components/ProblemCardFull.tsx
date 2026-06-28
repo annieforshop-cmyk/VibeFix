@@ -17,10 +17,12 @@ export default function ProblemCardFull({
   const [count, setCount] = useState(problem.upvotes);
   const [building, setBuilding] = useState(false);
 
-  const cat = CATEGORY_DARK[problem.category];
+  const cat  = CATEGORY_DARK[problem.category];
   const diff = DIFFICULTY_DARK[problem.difficulty];
   const stat = STATUS_DARK[problem.status];
-  const ai = AI_DARK[problem.aiPotential];
+  const ai   = AI_DARK[problem.aiPotential];
+
+  const num = String(index + 1).padStart(2, "0");
 
   function handleUpvote(e: React.MouseEvent) {
     e.stopPropagation();
@@ -34,123 +36,146 @@ export default function ProblemCardFull({
   }
 
   return (
-    <div className="relative bg-[#141419] border border-white/[0.07] rounded-3xl p-7 md:p-9 flex flex-col gap-5 overflow-hidden">
-      {/* 大背景序号 — 装饰性 */}
+    <div
+      className="relative flex flex-col overflow-hidden rounded-[1.75rem] border border-white/[0.055]"
+      style={{
+        background: `radial-gradient(ellipse 80% 50% at 100% 0%, ${cat.glow} 0%, transparent 60%), #0F0E1B`,
+        minHeight: "clamp(520px, 68vh, 720px)",
+      }}
+    >
+      {/* 大背景序号 — 装饰性水印 */}
       <span
         aria-hidden="true"
-        className="absolute top-4 right-7 font-black text-[110px] leading-none select-none pointer-events-none"
-        style={{ color: "rgba(255,255,255,0.025)" }}
+        className="pointer-events-none absolute right-6 top-3 select-none font-black leading-none tracking-tighter"
+        style={{
+          fontSize: "clamp(7rem, 16vw, 11rem)",
+          color: "rgba(255,255,255,0.028)",
+          fontVariantNumeric: "tabular-nums",
+        }}
       >
-        {String(index + 1).padStart(2, "0")}
+        {num}
       </span>
 
-      {/* ── 顶部 meta ─────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-3 relative z-10">
-        <div className="flex flex-wrap gap-1.5">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${cat.badge}`}>
-            {problem.category}
-          </span>
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${diff}`}>
-            {problem.difficulty}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0 text-xs text-white/30">
-          <span className="text-sm">{problem.countryFlag}</span>
-          <span>{problem.country}</span>
-        </div>
-      </div>
+      {/* ── 主体内容 ───────────────────────────────────────── */}
+      <div className="relative z-10 flex flex-1 flex-col gap-5 p-7 md:p-10">
 
-      {/* ── 标题 ──────────────────────────────────────── */}
-      <div className="relative z-10">
-        <h2 className="text-2xl md:text-[28px] font-bold text-[#EEEEF0] leading-snug tracking-tight">
-          {problem.title}
-        </h2>
-        <p className="mt-2 text-sm text-white/35">
-          <span className="text-white/20 mr-1.5">适合</span>
-          {problem.targetUsers}
-        </p>
-      </div>
-
-      {/* ── 描述 ──────────────────────────────────────── */}
-      <p className="text-[15px] text-white/55 leading-relaxed line-clamp-3 relative z-10">
-        {problem.description}
-      </p>
-
-      {/* ── 为什么是现在 ──────────────────────────────── */}
-      <div className="bg-white/[0.03] border border-white/[0.05] rounded-2xl px-4 py-3.5 relative z-10">
-        <p className="text-[10px] text-white/25 font-semibold uppercase tracking-[0.15em] mb-1.5">
-          为什么是现在
-        </p>
-        <p className="text-sm text-white/45 leading-relaxed line-clamp-2">
-          {problem.whyNow}
-        </p>
-      </div>
-
-      {/* ── 技术标签 ──────────────────────────────────── */}
-      <div className="flex flex-wrap gap-1.5 relative z-10">
-        {problem.techHints.map((hint) => (
-          <span
-            key={hint}
-            className="text-xs bg-white/[0.04] text-white/35 border border-white/[0.06] px-2.5 py-1 rounded-lg"
-          >
-            {hint}
-          </span>
-        ))}
-      </div>
-
-      {/* ── 底部 footer ───────────────────────────────── */}
-      <div className="flex items-center justify-between pt-4 border-t border-white/[0.06] mt-auto relative z-10 gap-3 flex-wrap">
-        {/* 左：状态 + AI */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${stat.dot}`} />
-            <span className={`text-xs font-medium ${stat.label}`}>{problem.status}</span>
+        {/* 顶部 meta */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-1.5">
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${cat.badge}`}>
+              {problem.category}
+            </span>
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${diff}`}>
+              {problem.difficulty}
+            </span>
           </div>
-          <span className={`text-xs font-medium ${ai}`}>
-            AI {problem.aiPotential}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0 text-xs text-white/30">
+            <span className="text-base">{problem.countryFlag}</span>
+            <span className="hidden sm:inline">{problem.country}</span>
+          </div>
         </div>
 
-        {/* 右：操作按钮 */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleUpvote}
-            className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-xl transition-all ${
-              upvoted
-                ? "bg-indigo-500/15 text-indigo-300"
-                : "bg-white/[0.05] text-white/35 hover:bg-white/[0.08] hover:text-white/60"
-            }`}
+        {/* 标题区 */}
+        <div className="flex flex-col gap-2">
+          <h2
+            className="font-bold text-[#F0F0F5] leading-[1.25] tracking-[-0.02em]"
+            style={{ fontSize: "clamp(1.45rem, 3.2vw, 1.85rem)" }}
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill={upvoted ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth="2.5"
+            {problem.title}
+          </h2>
+          <p className="text-[13px] text-white/30">
+            <span className="text-white/18 mr-1">适合</span>
+            {problem.targetUsers}
+          </p>
+        </div>
+
+        {/* 描述 */}
+        <p className="text-[15px] leading-[1.75] text-white/50 line-clamp-4">
+          {problem.description}
+        </p>
+
+        {/* 为什么是现在 */}
+        <div
+          className="rounded-[1.25rem] px-5 py-4"
+          style={{ background: "rgba(255,255,255,0.028)", border: "1px solid rgba(255,255,255,0.055)" }}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25 mb-1.5">
+            为什么是现在
+          </p>
+          <p className="text-[13.5px] leading-[1.65] text-white/42 line-clamp-2">
+            {problem.whyNow}
+          </p>
+        </div>
+
+        {/* 技术标签 */}
+        <div className="flex flex-wrap gap-1.5">
+          {problem.techHints.map((hint) => (
+            <span
+              key={hint}
+              className="text-[11px] px-2.5 py-1 rounded-xl text-white/30"
+              style={{ background: "rgba(255,255,255,0.038)", border: "1px solid rgba(255,255,255,0.055)" }}
             >
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-            {count}
-          </button>
+              {hint}
+            </span>
+          ))}
+        </div>
 
-          <button
-            onClick={handleBuild}
-            className={`text-sm font-semibold px-4 py-1.5 rounded-xl transition-all ${
-              building
-                ? "bg-indigo-500 text-white"
-                : "bg-white/[0.06] text-white/60 hover:bg-indigo-500/20 hover:text-indigo-300"
-            }`}
-          >
-            {building ? "✓ 我来做" : "我来做"}
-          </button>
+        {/* ── 底部 footer ─────────────────────────────────── */}
+        <div
+          className="mt-auto flex items-center justify-between gap-3 flex-wrap pt-5"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.055)" }}
+        >
+          {/* 状态 + AI */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stat.dot}`} />
+              <span className={`text-[12px] font-medium ${stat.label}`}>{problem.status}</span>
+            </div>
+            <span className={`text-[12px] font-medium ${ai}`}>
+              AI {problem.aiPotential}
+            </span>
+          </div>
 
-          <button
-            onClick={() => router.push(`/problems/${problem.id}`)}
-            className="text-xs text-white/30 hover:text-white/60 transition-colors px-2 py-1.5"
-          >
-            详情 →
-          </button>
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleUpvote}
+              className={`flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 ${
+                upvoted
+                  ? "bg-violet-500/15 text-violet-300"
+                  : "text-white/30 hover:text-white/60 hover:bg-white/[0.06]"
+              }`}
+              style={{ background: upvoted ? undefined : "rgba(255,255,255,0.04)" }}
+            >
+              <svg
+                width="11" height="11" viewBox="0 0 24 24"
+                fill={upvoted ? "currentColor" : "none"}
+                stroke="currentColor" strokeWidth="2.5"
+              >
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+              {count}
+            </button>
+
+            <button
+              onClick={handleBuild}
+              className={`text-[13px] font-semibold px-4 py-1.5 rounded-xl transition-all duration-150 ${
+                building
+                  ? "bg-[#8875F8] text-white shadow-lg shadow-violet-500/20"
+                  : "text-white/55 hover:text-white hover:bg-[#8875F8]/20"
+              }`}
+              style={{ background: building ? undefined : "rgba(255,255,255,0.055)" }}
+            >
+              {building ? "✓ 我来做" : "我来做"}
+            </button>
+
+            <button
+              onClick={() => router.push(`/problems/${problem.id}`)}
+              className="text-[12px] text-white/25 hover:text-white/55 transition-colors duration-150 px-2 py-1.5"
+            >
+              详情 →
+            </button>
+          </div>
         </div>
       </div>
     </div>
