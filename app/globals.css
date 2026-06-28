@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F8F7F4;
-  --foreground: #1a1a1a;
+  --background: #0E0E14;
+  --foreground: #EEEEF0;
+  --font-noto-sc: "";
 }
 
 @theme inline {
@@ -15,8 +16,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-noto-sc), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
+/* ─── Utilities ──────────────────────────────────────── */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -31,3 +34,41 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Card Deck Animations ───────────────────────────── */
+/* 往左划 → 当前卡片离开左侧，下一张从右进入 */
+@keyframes cardExitLeft {
+  from { transform: translateX(0) scale(1);    opacity: 1; }
+  to   { transform: translateX(-75%) scale(0.94); opacity: 0; }
+}
+@keyframes cardEnterRight {
+  from { transform: translateX(75%) scale(1.03); opacity: 0; }
+  to   { transform: translateX(0) scale(1);    opacity: 1; }
+}
+@keyframes cardExitRight {
+  from { transform: translateX(0) scale(1);    opacity: 1; }
+  to   { transform: translateX(75%) scale(0.94);  opacity: 0; }
+}
+@keyframes cardEnterLeft {
+  from { transform: translateX(-75%) scale(1.03); opacity: 0; }
+  to   { transform: translateX(0) scale(1);    opacity: 1; }
+}
+
+.card-exit-left   { animation: cardExitLeft   0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card-enter-right { animation: cardEnterRight  0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card-exit-right  { animation: cardExitRight   0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card-enter-left  { animation: cardEnterLeft   0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
