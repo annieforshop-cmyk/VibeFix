@@ -12,7 +12,7 @@ export default function SubmitModal({ onClose }: { onClose: () => void }) {
   }
 
   const inputCls =
-    "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.06] transition-all";
+    "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-violet-500/40 focus:bg-white/[0.06] transition-all";
 
   return (
     <div
@@ -20,13 +20,13 @@ export default function SubmitModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="bg-[#141419] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg shadow-2xl"
+        className="bg-[#0F0E1B] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {submitted ? (
           <div className="text-center py-10">
-            <div className="w-12 h-12 rounded-full bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center mx-auto mb-4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" strokeWidth="2.5">
+            <div className="w-12 h-12 rounded-full bg-violet-500/15 border border-violet-500/25 flex items-center justify-center mx-auto mb-4">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A594FF" strokeWidth="2.5">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
             </div>
@@ -34,7 +34,7 @@ export default function SubmitModal({ onClose }: { onClose: () => void }) {
             <p className="text-sm text-white/40 mb-6">感谢你的贡献，我们会在审核后发布这个问题。</p>
             <button
               onClick={onClose}
-              className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-2 rounded-xl text-sm font-medium transition-colors"
+              className="bg-[#8875F8] hover:bg-[#7A67F0] text-white px-6 py-2 rounded-xl text-sm font-medium transition-colors"
             >
               关闭
             </button>
@@ -117,7 +117,7 @@ export default function SubmitModal({ onClose }: { onClose: () => void }) {
               </div>
               <button
                 type="submit"
-                className="bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors mt-1"
+                className="bg-[#8875F8] hover:bg-[#7A67F0] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors mt-1"
               >
                 提交审核
               </button>
