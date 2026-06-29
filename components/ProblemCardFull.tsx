@@ -3,179 +3,103 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Problem } from "@/lib/data";
-import { CATEGORY_DARK, DIFFICULTY_DARK, STATUS_DARK, AI_DARK } from "@/design/ui-tokens";
+
+const CAT_COLORS: Record<string, string> = {
+  自由职业: "bg-violet-100 text-violet-700",
+  小生意:   "bg-amber-100 text-amber-700",
+  效率工具: "bg-blue-100 text-blue-700",
+  创作者:   "bg-pink-100 text-pink-700",
+  学习成长: "bg-emerald-100 text-emerald-700",
+  本地生活: "bg-orange-100 text-orange-700",
+  社交连接: "bg-cyan-100 text-cyan-700",
+  个人财务: "bg-lime-100 text-lime-700",
+  宠物生活: "bg-rose-100 text-rose-700",
+  健身健康: "bg-teal-100 text-teal-700",
+};
+
+const HOT_THRESHOLD = 800;
 
 export default function ProblemCardFull({
   problem,
-  index,
 }: {
   problem: Problem;
   index: number;
 }) {
   const router = useRouter();
-  const [upvoted, setUpvoted] = useState(false);
-  const [count, setCount] = useState(problem.upvotes);
-  const [building, setBuilding] = useState(false);
+  const [interested, setInterested] = useState(false);
 
-  const cat  = CATEGORY_DARK[problem.category];
-  const diff = DIFFICULTY_DARK[problem.difficulty];
-  const stat = STATUS_DARK[problem.status];
-  const ai   = AI_DARK[problem.aiPotential];
-
-  const num = String(index + 1).padStart(2, "0");
-
-  function handleUpvote(e: React.MouseEvent) {
-    e.stopPropagation();
-    setCount((c) => (upvoted ? c - 1 : c + 1));
-    setUpvoted((u) => !u);
-  }
-
-  function handleBuild(e: React.MouseEvent) {
-    e.stopPropagation();
-    setBuilding((b) => !b);
-  }
+  const isHot = problem.upvotes >= HOT_THRESHOLD;
 
   return (
     <div
-      className="relative flex flex-col overflow-hidden rounded-[1.75rem] border border-white/[0.055]"
-      style={{
-        background: `radial-gradient(ellipse 80% 50% at 100% 0%, ${cat.glow} 0%, transparent 60%), #0F0E1B`,
-        minHeight: "clamp(520px, 68vh, 720px)",
-      }}
+      className="relative flex flex-col bg-white rounded-3xl overflow-hidden"
+      style={{ minHeight: "clamp(480px, 70vh, 680px)" }}
     >
-      {/* 大背景序号 — 装饰性水印 */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute right-6 top-3 select-none font-black leading-none tracking-tighter"
-        style={{
-          fontSize: "clamp(7rem, 16vw, 11rem)",
-          color: "rgba(255,255,255,0.028)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {num}
-      </span>
-
-      {/* ── 主体内容 ───────────────────────────────────────── */}
-      <div className="relative z-10 flex flex-1 flex-col gap-5 p-7 md:p-10">
-
-        {/* 顶部 meta */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${cat.badge}`}>
-              {problem.category}
+      {/* Card content */}
+      <div className="flex flex-col flex-1 p-6 gap-4">
+        {/* Top badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {isHot && (
+            <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-red-100 text-red-600">
+              🔥 HOT PROBLEM
             </span>
-            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${diff}`}>
-              {problem.difficulty}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 text-xs text-white/30">
-            <span className="text-base">{problem.countryFlag}</span>
-            <span className="hidden sm:inline">{problem.country}</span>
-          </div>
-        </div>
-
-        {/* 标题区 */}
-        <div className="flex flex-col gap-2">
-          <h2
-            className="font-bold text-[#F0F0F5] leading-[1.25] tracking-[-0.02em]"
-            style={{ fontSize: "clamp(1.45rem, 3.2vw, 1.85rem)" }}
+          )}
+          <span
+            className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+              CAT_COLORS[problem.category] ?? "bg-gray-100 text-gray-600"
+            }`}
           >
-            {problem.title}
-          </h2>
-          <p className="text-[13px] text-white/30">
-            <span className="text-white/18 mr-1">适合</span>
-            {problem.targetUsers}
-          </p>
+            {problem.category}
+          </span>
+          <span className="ml-auto text-[11px] text-gray-400 flex items-center gap-1">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+            {problem.upvotes.toLocaleString()}
+          </span>
         </div>
 
-        {/* 描述 */}
-        <p className="text-[15px] leading-[1.75] text-white/50 line-clamp-4">
+        {/* Title */}
+        <h2 className="text-[22px] font-black text-gray-900 leading-tight tracking-tight">
+          {problem.title}
+        </h2>
+
+        {/* Description */}
+        <p className="text-[14px] text-gray-500 leading-relaxed line-clamp-4 flex-1">
           {problem.description}
         </p>
 
-        {/* 为什么是现在 */}
-        <div
-          className="rounded-[1.25rem] px-5 py-4"
-          style={{ background: "rgba(255,255,255,0.028)", border: "1px solid rgba(255,255,255,0.055)" }}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25 mb-1.5">
-            为什么是现在
-          </p>
-          <p className="text-[13.5px] leading-[1.65] text-white/42 line-clamp-2">
-            {problem.whyNow}
-          </p>
-        </div>
-
-        {/* 技术标签 */}
+        {/* Hashtags */}
         <div className="flex flex-wrap gap-1.5">
-          {problem.techHints.map((hint) => (
-            <span
-              key={hint}
-              className="text-[11px] px-2.5 py-1 rounded-xl text-white/30"
-              style={{ background: "rgba(255,255,255,0.038)", border: "1px solid rgba(255,255,255,0.055)" }}
-            >
-              {hint}
+          {problem.techHints.slice(0, 3).map((h) => (
+            <span key={h} className="text-[11px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+              #{h}
             </span>
           ))}
         </div>
 
-        {/* ── 底部 footer ─────────────────────────────────── */}
-        <div
-          className="mt-auto flex items-center justify-between gap-3 flex-wrap pt-5"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.055)" }}
-        >
-          {/* 状态 + AI */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stat.dot}`} />
-              <span className={`text-[12px] font-medium ${stat.label}`}>{problem.status}</span>
-            </div>
-            <span className={`text-[12px] font-medium ${ai}`}>
-              AI {problem.aiPotential}
-            </span>
-          </div>
-
-          {/* 操作按钮 */}
+        {/* User row */}
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleUpvote}
-              className={`flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 ${
-                upvoted
-                  ? "bg-violet-500/15 text-violet-300"
-                  : "text-white/30 hover:text-white/60 hover:bg-white/[0.06]"
-              }`}
-              style={{ background: upvoted ? undefined : "rgba(255,255,255,0.04)" }}
-            >
-              <svg
-                width="11" height="11" viewBox="0 0 24 24"
-                fill={upvoted ? "currentColor" : "none"}
-                stroke="currentColor" strokeWidth="2.5"
-              >
-                <path d="M12 19V5M5 12l7-7 7 7" />
-              </svg>
-              {count}
-            </button>
-
-            <button
-              onClick={handleBuild}
-              className={`text-[13px] font-semibold px-4 py-1.5 rounded-xl transition-all duration-150 ${
-                building
-                  ? "bg-[#8875F8] text-white shadow-lg shadow-violet-500/20"
-                  : "text-white/55 hover:text-white hover:bg-[#8875F8]/20"
-              }`}
-              style={{ background: building ? undefined : "rgba(255,255,255,0.055)" }}
-            >
-              {building ? "✓ 我来做" : "我来做"}
-            </button>
-
-            <button
-              onClick={() => router.push(`/problems/${problem.id}`)}
-              className="text-[12px] text-white/25 hover:text-white/55 transition-colors duration-150 px-2 py-1.5"
-            >
-              详情 →
-            </button>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-green-600 flex items-center justify-center text-white text-[11px] font-bold">
+              {problem.submittedBy === "创始人精选" ? "F" : "U"}
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold text-gray-700">
+                {problem.submittedBy === "创始人精选" ? "Founder" : "社区用户"}
+              </p>
+              <p className="text-[10px] text-gray-400">2小时前发布</p>
+            </div>
           </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); router.push(`/problems/${problem.id}`); }}
+            className="text-[12px] font-semibold text-[#0e6b4a] flex items-center gap-1 hover:gap-2 transition-all"
+          >
+            详情
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

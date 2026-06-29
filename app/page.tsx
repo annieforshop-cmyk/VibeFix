@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { PROBLEMS, ALL_CATEGORIES, Category, Difficulty } from "@/lib/data";
+import ProblemCard from "@/components/ProblemCard";
 import CardDeck from "@/components/CardDeck";
 import SubmitModal from "@/components/SubmitModal";
 
@@ -9,12 +11,13 @@ type SortMode = "热门" | "最新" | "随机";
 const DIFFICULTY_OPTS: Difficulty[] = ["周末项目", "1-3个月", "需要团队"];
 
 export default function Home() {
-  const [selectedCategory, setSelectedCategory]   = useState<Category | null>(null);
+  const router = useRouter();
+  const [selectedCategory, setSelectedCategory]     = useState<Category | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
-  const [sortMode, setSortMode]   = useState<SortMode>("热门");
-  const [search, setSearch]       = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSubmit, setShowSubmit]   = useState(false);
+  const [sortMode, setSortMode]     = useState<SortMode>("热门");
+  const [search, setSearch]         = useState("");
+  const [showSubmit, setShowSubmit] = useState(false);
+  const [activeNav, setActiveNav]   = useState<"discover" | "saved" | "profile">("discover");
 
   const filtered = useMemo(() => {
     let list = [...PROBLEMS];
@@ -26,8 +29,7 @@ export default function Home() {
         (p) =>
           p.title.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.targetUsers.toLowerCase().includes(q)
+          p.category.toLowerCase().includes(q)
       );
     }
     if (sortMode === "热门") return list.sort((a, b) => b.upvotes - a.upvotes);
@@ -37,30 +39,38 @@ export default function Home() {
 
   const activeFilterCount = [selectedCategory, selectedDifficulty].filter(Boolean).length;
 
-  return (
-    <div className="min-h-screen" style={{ background: "#09090F", color: "#F0F0F5" }}>
-
-      {/* ══ Header ══════════════════════════════════════════ */}
-      <header
-        className="sticky top-0 z-40 backdrop-blur-xl"
-        style={{
-          background: "rgba(9,9,15,0.85)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-        }}
-      >
-        <div className="max-w-5xl mx-auto px-4 md:px-8 h-14 flex items-center gap-3">
-
+  // ── Desktop layout ──────────────────────────────────────────────
+  const DesktopLayout = () => (
+    <div className="hidden md:flex min-h-screen flex-col bg-[#f8f9f8]">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-6">
           {/* Logo */}
-          <div className="shrink-0 flex items-center gap-2">
-            <span className="text-[15px] font-black tracking-tight text-white">未解</span>
-            <span className="hidden sm:inline text-[11px] text-white/18 tracking-widest">Wèi Jiě</span>
-          </div>
+          <button onClick={() => router.push("/")} className="shrink-0 font-black text-[17px] text-[#0e6b4a] tracking-tight">
+            Unresolved
+          </button>
+
+          {/* Nav tabs */}
+          <nav className="flex items-center gap-0.5">
+            {(["Discover", "Categories", "Resources"] as const).map((tab) => (
+              <button
+                key={tab}
+                className={`text-[13px] px-3.5 py-1.5 rounded-lg transition-colors ${
+                  tab === "Discover"
+                    ? "text-gray-900 font-medium bg-gray-100"
+                    : "text-gray-400 hover:text-gray-700"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
 
           {/* Search */}
-          <div className="flex-1 max-w-[260px] relative ml-2">
+          <div className="flex-1 max-w-xs relative ml-2">
             <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20"
-              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
+              width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2"
             >
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -70,246 +80,283 @@ export default function Home() {
               placeholder="搜索问题..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-[13px] text-white/70 placeholder-white/18 focus:outline-none transition-all"
-              style={{
-                background: "rgba(255,255,255,0.045)",
-                border: "1px solid rgba(255,255,255,0.065)",
-                borderRadius: "0.875rem",
-              }}
-              onFocus={(e) => {
-                e.target.style.background = "rgba(255,255,255,0.07)";
-                e.target.style.borderColor = "rgba(255,255,255,0.13)";
-              }}
-              onBlur={(e) => {
-                e.target.style.background = "rgba(255,255,255,0.045)";
-                e.target.style.borderColor = "rgba(255,255,255,0.065)";
-              }}
+              className="w-full pl-9 pr-3 py-1.5 text-[13px] text-gray-700 placeholder-gray-300 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:border-[#0e6b4a] focus:bg-white transition-all"
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            {/* 排序 — 三个 pill，横排在 header */}
-            <div className="hidden sm:flex items-center rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => setShowSubmit(true)}
+              className="text-[13px] font-semibold px-4 py-1.5 rounded-full bg-[#0e6b4a] text-white hover:bg-[#0a5a3d] transition-colors"
+            >
+              Submit Problem
+            </button>
+            <button className="text-[13px] text-gray-500 hover:text-gray-800 transition-colors">
+              Sign In
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="bg-[#0e6b4a] text-white">
+        <div className="max-w-7xl mx-auto px-6 py-14">
+          <div className="max-w-2xl">
+            <h1 className="text-[2.5rem] font-black leading-tight tracking-tight mb-4">
+              找到值得你<br />全力以赴的那个问题
+            </h1>
+            <p className="text-[15px] text-white/70 mb-6 leading-relaxed">
+              我们为了那些真正解决用户问题的方案。成功了一个特别的奋斗，一个一个逐步解决问题的开发者。
+            </p>
+
+            {/* Hero search */}
+            <div className="relative max-w-lg">
+              <svg
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2"
+              >
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                placeholder="搜索、查看、发现更多..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-20 py-3.5 text-[14px] text-gray-900 bg-white rounded-2xl focus:outline-none shadow-lg"
+              />
+              <button
+                onClick={() => {}}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#0e6b4a] text-white text-[13px] font-semibold px-4 py-1.5 rounded-xl"
+              >
+                搜索
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Body: Sidebar + Grid ── */}
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8 flex-1">
+
+        {/* Sidebar */}
+        <aside className="w-52 shrink-0">
+          <div className="sticky top-20 space-y-6">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+                Refine your search
+              </p>
+
+              {/* Filters arrow */}
+              <div className="flex items-center gap-2 mb-4 text-[13px] text-gray-500">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                </svg>
+                筛选{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+              </div>
+
+              {/* Difficulty */}
+              <div className="mb-4">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Difficulty</p>
+                <div className="space-y-1.5">
+                  {(["Easy", "Medium", "Hard"] as const).map((d, i) => {
+                    const opts = DIFFICULTY_OPTS;
+                    const opt = opts[i];
+                    return (
+                      <label key={d} className="flex items-center gap-2 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={selectedDifficulty === opt}
+                          onChange={() => setSelectedDifficulty(selectedDifficulty === opt ? null : opt)}
+                          className="w-3.5 h-3.5 rounded border-gray-300 accent-[#0e6b4a]"
+                        />
+                        <span className={`text-[13px] transition-colors ${selectedDifficulty === opt ? "text-[#0e6b4a] font-medium" : "text-gray-600 group-hover:text-gray-900"}`}>
+                          {d}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Duration */}
+              <div className="mb-4">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Duration</p>
+                <div className="space-y-1.5">
+                  {(["周末项目", "1-3个月"] as Difficulty[]).map((d) => (
+                    <label key={d} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedDifficulty === d}
+                        onChange={() => setSelectedDifficulty(selectedDifficulty === d ? null : d)}
+                        className="w-3.5 h-3.5 rounded border-gray-300 accent-[#0e6b4a]"
+                      />
+                      <span className={`text-[13px] transition-colors ${selectedDifficulty === d ? "text-[#0e6b4a] font-medium" : "text-gray-600 group-hover:text-gray-900"}`}>
+                        {d === "周末项目" ? "Weekend Project" : "1-3 Months"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="mb-4">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Categories</p>
+                <div className="space-y-1.5">
+                  {ALL_CATEGORIES.map((cat) => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategory === cat}
+                        onChange={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                        className="w-3.5 h-3.5 rounded border-gray-300 accent-[#0e6b4a]"
+                      />
+                      <span className={`text-[13px] transition-colors ${selectedCategory === cat ? "text-[#0e6b4a] font-medium" : "text-gray-600 group-hover:text-gray-900"}`}>
+                        {cat}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => { setSelectedCategory(null); setSelectedDifficulty(null); }}
+                  className="text-[12px] text-gray-400 hover:text-[#0e6b4a] transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* Sort bar */}
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-[13px] text-gray-500">
+              {search.trim()
+                ? `「${search}」找到 ${filtered.length} 个结果`
+                : `共 ${filtered.length} 个问题`}
+            </p>
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
               {(["热门", "最新", "随机"] as SortMode[]).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setSortMode(mode)}
-                  className="text-[12px] px-3 py-1.5 transition-all duration-150"
-                  style={{
-                    color: sortMode === mode ? "#F0F0F5" : "rgba(255,255,255,0.28)",
-                    background: sortMode === mode ? "rgba(136,117,248,0.16)" : "transparent",
-                  }}
+                  className={`text-[12px] px-3 py-1.5 transition-all ${
+                    sortMode === mode ? "bg-[#0e6b4a] text-white font-medium" : "text-gray-500 hover:text-gray-800"
+                  }`}
                 >
                   {mode}
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* 筛选 */}
-            <button
-              onClick={() => setShowFilters((f) => !f)}
-              className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-xl transition-all duration-150"
-              style={{
-                background: showFilters || activeFilterCount > 0 ? "rgba(136,117,248,0.13)" : "rgba(255,255,255,0.035)",
-                border: showFilters || activeFilterCount > 0 ? "1px solid rgba(136,117,248,0.25)" : "1px solid rgba(255,255,255,0.06)",
-                color: showFilters || activeFilterCount > 0 ? "#A594FF" : "rgba(255,255,255,0.30)",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+          {/* Cards grid */}
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-gray-300 gap-3">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
-              筛选{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
-            </button>
-
-            {/* 提交 */}
-            <button
-              onClick={() => setShowSubmit(true)}
-              className="text-[12px] font-semibold px-3.5 py-1.5 rounded-xl text-white transition-all duration-150 hover:opacity-85 active:scale-95"
-              style={{ background: "#8875F8" }}
-            >
-              提交
-            </button>
-          </div>
-        </div>
-
-        {/* 筛选面板 */}
-        {showFilters && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-            <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 space-y-3">
-              {/* 分类 */}
-              <div className="flex flex-wrap gap-1.5">
-                {ALL_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                    className="text-[12px] px-3 py-1.5 rounded-full transition-all duration-150"
-                    style={
-                      selectedCategory === cat
-                        ? { background: "rgba(136,117,248,0.15)", border: "1px solid rgba(136,117,248,0.3)", color: "#A594FF" }
-                        : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.35)" }
-                    }
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* 难度 */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-white/20 mr-0.5">难度</span>
-                  {DIFFICULTY_OPTS.map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setSelectedDifficulty(selectedDifficulty === d ? null : d)}
-                      className="text-[12px] px-3 py-1.5 rounded-full transition-all duration-150"
-                      style={
-                        selectedDifficulty === d
-                          ? { background: "rgba(136,117,248,0.15)", border: "1px solid rgba(136,117,248,0.3)", color: "#A594FF" }
-                          : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.35)" }
-                      }
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-
-                {/* 移动端排序 */}
-                <div className="flex sm:hidden items-center gap-1">
-                  <span className="text-[11px] text-white/20 mr-0.5">排序</span>
-                  {(["热门", "最新", "随机"] as SortMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setSortMode(mode)}
-                      className="text-[12px] px-2.5 py-1.5 rounded-full transition-all"
-                      style={{
-                        color: sortMode === mode ? "#F0F0F5" : "rgba(255,255,255,0.28)",
-                        background: sortMode === mode ? "rgba(255,255,255,0.08)" : "transparent",
-                      }}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-
-                {activeFilterCount > 0 && (
-                  <button
-                    onClick={() => { setSelectedCategory(null); setSelectedDifficulty(null); }}
-                    className="ml-auto text-[11px] transition-colors duration-150"
-                    style={{ color: "rgba(255,255,255,0.22)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.50)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.22)")}
-                  >
-                    清除筛选
-                  </button>
-                )}
-              </div>
+              <span className="text-sm text-gray-400">没有匹配的问题</span>
             </div>
-          </div>
-        )}
-      </header>
-
-      {/* ══ Main ════════════════════════════════════════════ */}
-      <main className="max-w-5xl mx-auto px-4 md:px-8 pt-10 pb-16">
-
-        {/* ── Hero ─────────────────────────────────────────── */}
-        <div className="mb-10">
-          {/* 顶部小标签 */}
-          <p
-            className="text-[10px] font-bold uppercase tracking-[0.25em] mb-4"
-            style={{ color: "rgba(255,255,255,0.22)" }}
-          >
-            为独立开发者整理的真实待解问题
-          </p>
-
-          {/* 主标题 */}
-          <h1
-            className="font-black tracking-[-0.03em] leading-[1.15] mb-4"
-            style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: "#F0F0F5" }}
-          >
-            找到值得你
-            <span style={{ color: "#A594FF" }}> 全力以赴 </span>
-            的那个问题
-          </h1>
-
-          {/* 副标题 + 统计 — 同一行 */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 sm:justify-between">
-            <p className="text-[14px] leading-relaxed" style={{ color: "rgba(255,255,255,0.30)" }}>
-              每一张卡片，一个细分痛点，一个可以动手的方向
-            </p>
-
-            <div className="flex items-center gap-4">
-              <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.22)" }}>
-                <strong className="font-semibold" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  {PROBLEMS.length}
-                </strong>{" "}个问题
-              </span>
-              <span style={{ color: "rgba(255,255,255,0.08)" }}>·</span>
-              <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.22)" }}>
-                <strong className="font-semibold" style={{ color: "#34D399" }}>
-                  {PROBLEMS.filter((p) => p.difficulty === "周末项目").length}
-                </strong>{" "}个周末可做
-              </span>
-              <span style={{ color: "rgba(255,255,255,0.08)" }}>·</span>
-              <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.22)" }}>
-                <strong className="font-semibold" style={{ color: "rgba(255,255,255,0.45)" }}>10</strong>{" "}个场景
-              </span>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {filtered.map((p, i) => (
+                <ProblemCard key={p.id} problem={p} featured={i === filtered.length - 1 && filtered.length % 2 === 1} />
+              ))}
             </div>
-          </div>
-
-          {/* 搜索结果提示 */}
-          {search.trim() && (
-            <p className="mt-3 text-[12px]" style={{ color: "rgba(255,255,255,0.25)" }}>
-              「{search}」找到{" "}
-              <strong className="font-semibold" style={{ color: "rgba(255,255,255,0.50)" }}>
-                {filtered.length}
-              </strong>{" "}个结果
-            </p>
           )}
         </div>
+      </div>
 
-        {/* ── Card Deck ─────────────────────────────────────── */}
-        <CardDeck problems={filtered} />
-
-        {/* ── 创始人的话 ──────────────────────────────────── */}
-        <div className="mt-28">
-          <div
-            className="max-w-xl mx-auto pt-12"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-          >
-            <p
-              className="text-[10px] font-bold uppercase tracking-[0.22em] mb-7"
-              style={{ color: "rgba(255,255,255,0.18)" }}
-            >
-              创始人的话
-            </p>
-            <blockquote className="space-y-5">
-              <p className="text-[14px] leading-[2.0]" style={{ color: "rgba(255,255,255,0.30)" }}>
-                我相信 AI 是这个时代最重要的力量——不是因为它酷，而是因为它第一次让普通人有能力解决原本只有大机构才能触碰的问题。
-              </p>
-              <p className="text-[14px] leading-[2.0]" style={{ color: "rgba(255,255,255,0.30)" }}>
-                但我注意到一件奇怪的事：有能力的人越来越多，世界的问题却好像没有变少。
-              </p>
-              <p className="text-[14px] leading-[2.0]" style={{ color: "rgba(255,255,255,0.30)" }}>
-                这个平台想做的事很简单：把世界上真实存在的问题，放到那些有能力解决它们的人面前。不宏大，不复杂。就是一张卡片，一个问题，一个也许会因此改变方向的人。
-              </p>
-            </blockquote>
-            <p className="mt-6 text-[11px]" style={{ color: "rgba(255,255,255,0.15)" }}>—— 创始人</p>
+      {/* ── Footer ── */}
+      <footer className="border-t border-gray-100 bg-white py-5 mt-8">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+          <span className="text-[13px] font-black text-[#0e6b4a]">Unresolved</span>
+          <div className="flex items-center gap-5">
+            {["About", "Contact", "Terms", "Privacy"].map((l) => (
+              <button key={l} className="text-[12px] text-gray-400 hover:text-gray-700 transition-colors">{l}</button>
+            ))}
           </div>
-        </div>
-      </main>
-
-      {/* ══ Footer ══════════════════════════════════════════ */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }} className="py-7">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 flex items-center justify-between">
-          <span className="text-sm font-black" style={{ color: "rgba(255,255,255,0.18)" }}>未解</span>
-          <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.10)" }}>
-            Unsolved · Problems Worth Building For
-          </span>
+          <span className="text-[11px] text-gray-300">© 2024 Unresolved Platform</span>
         </div>
       </footer>
-
-      {showSubmit && <SubmitModal onClose={() => setShowSubmit(false)} />}
     </div>
+  );
+
+  // ── Mobile layout ──────────────────────────────────────────────
+  const MobileLayout = () => (
+    <div className="flex md:hidden flex-col min-h-screen bg-[#f0f4f2]">
+      {/* Mobile Header */}
+      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+        <span className="font-black text-[16px] text-[#0e6b4a]">Unresolved</span>
+        <div className="flex items-center gap-3">
+          <button className="w-8 h-8 flex items-center justify-center text-gray-400">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+          </button>
+          <button className="w-8 h-8 flex items-center justify-center text-gray-400">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Card swipe area */}
+      <main className="flex-1 px-4 pt-4 pb-2">
+        <div className="text-center mb-4">
+          <h2 className="font-bold text-[16px] text-gray-900">寻找灵感</h2>
+          <p className="text-[12px] text-gray-400">左右滑动探索市场真实痛点</p>
+        </div>
+        <CardDeck problems={filtered} />
+      </main>
+
+      {/* Bottom navigation */}
+      <nav className="bg-white border-t border-gray-100 px-6 py-3 flex items-center justify-around">
+        {(["discover", "saved", "profile"] as const).map((nav) => {
+          const icons = {
+            discover: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+            saved:    <path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z" />,
+            profile:  <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+          };
+          const labels = { discover: "探索", saved: "星", profile: "我的" };
+          const active = activeNav === nav;
+          return (
+            <button
+              key={nav}
+              onClick={() => setActiveNav(nav)}
+              className="flex flex-col items-center gap-1"
+            >
+              <svg
+                width="22" height="22" viewBox="0 0 24 24"
+                fill={active ? "#0e6b4a" : "none"}
+                stroke={active ? "#0e6b4a" : "#9ca3af"}
+                strokeWidth="2"
+              >
+                {icons[nav]}
+              </svg>
+              <span className={`text-[10px] font-medium ${active ? "text-[#0e6b4a]" : "text-gray-400"}`}>
+                {labels[nav]}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+
+  return (
+    <>
+      <DesktopLayout />
+      <MobileLayout />
+      {showSubmit && <SubmitModal onClose={() => setShowSubmit(false)} />}
+    </>
   );
 }
