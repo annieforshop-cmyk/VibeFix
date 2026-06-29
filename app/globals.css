@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090F;
-  --foreground: #F0F0F5;
+  --background: #ffffff;
+  --foreground: #111827;
+  --brand:      #0e6b4a;
+  --brand-mid:  #15803d;
+  --brand-btn:  #0e6b4a;
 }
 
 @theme inline {
@@ -26,6 +29,12 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -45,80 +54,36 @@ body {
   overflow: hidden;
 }
 
-/* ─── Card Deck Animations ───────────────────────────── */
-/* 带 3D tilt 的翻牌感：向左滑时微微旋转，像翻过一张物理卡片 */
-
+/* ─── Card Swipe Animations (mobile) ─────────────────── */
 @keyframes cardExitLeft {
-  from {
-    transform: translateX(0) rotateY(0deg) scale(1);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  to {
-    transform: translateX(-52%) rotateY(-10deg) scale(0.91);
-    opacity: 0;
-    filter: blur(2px);
-  }
+  from { transform: translateX(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateX(-110%) rotate(-12deg); opacity: 0; }
 }
-
 @keyframes cardEnterRight {
-  from {
-    transform: translateX(52%) rotateY(8deg) scale(0.95);
-    opacity: 0;
-    filter: blur(2px);
-  }
-  to {
-    transform: translateX(0) rotateY(0deg) scale(1);
-    opacity: 1;
-    filter: blur(0px);
-  }
+  from { transform: translateX(110%) rotate(12deg); opacity: 0; }
+  to   { transform: translateX(0) rotate(0deg); opacity: 1; }
 }
-
 @keyframes cardExitRight {
-  from {
-    transform: translateX(0) rotateY(0deg) scale(1);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  to {
-    transform: translateX(52%) rotateY(10deg) scale(0.91);
-    opacity: 0;
-    filter: blur(2px);
-  }
+  from { transform: translateX(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateX(110%) rotate(12deg); opacity: 0; }
 }
-
 @keyframes cardEnterLeft {
-  from {
-    transform: translateX(-52%) rotateY(-8deg) scale(0.95);
-    opacity: 0;
-    filter: blur(2px);
-  }
-  to {
-    transform: translateX(0) rotateY(0deg) scale(1);
-    opacity: 1;
-    filter: blur(0px);
-  }
+  from { transform: translateX(-110%) rotate(-12deg); opacity: 0; }
+  to   { transform: translateX(0) rotate(0deg); opacity: 1; }
 }
 
-.card-deck-viewport {
-  perspective: 1200px;
-}
+.card-exit-left   { animation: cardExitLeft   0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card-enter-right { animation: cardEnterRight 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card-exit-right  { animation: cardExitRight  0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card-enter-left  { animation: cardEnterLeft  0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
-.card-exit-left   { animation: cardExitLeft   0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-.card-enter-right { animation: cardEnterRight  0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-.card-exit-right  { animation: cardExitRight   0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-.card-enter-left  { animation: cardEnterLeft   0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-
-/* 拖拽时禁止文字选中 */
 .card-dragging { user-select: none; }
 
-/* ─── Swipe hint ─────────────────────────────────────── */
-@keyframes swipeHint {
-  0%   { transform: translateX(0);    opacity: 0.4; }
-  30%  { transform: translateX(-18px); opacity: 0.9; }
-  60%  { transform: translateX(-18px); opacity: 0.9; }
-  100% { transform: translateX(0);    opacity: 0.4; }
+/* ─── Swipe Hint ─────────────────────────────────────── */
+@keyframes swipeHintLeft {
+  0%   { transform: translateX(0);     opacity: 0.5; }
+  40%  { transform: translateX(-22px); opacity: 1;   }
+  70%  { transform: translateX(-22px); opacity: 1;   }
+  100% { transform: translateX(0);     opacity: 0.5; }
 }
-.swipe-hint {
-  animation: swipeHint 1.8s cubic-bezier(0.4, 0, 0.6, 1) 1.5s 1 forwards;
-}
+.swipe-hint { animation: swipeHintLeft 2s ease-in-out 1s 1 forwards; }
