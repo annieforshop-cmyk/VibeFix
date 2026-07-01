@@ -184,11 +184,15 @@ export default function Home() {
             VibeFix
           </button>
           <nav className="flex items-center gap-0.5">
-            {(["Discover", "Categories", "Resources"] as const).map((tab) => (
-              <button key={tab} className={`text-[13px] px-3.5 py-1.5 rounded-lg transition-colors ${tab === "Discover" ? "text-gray-900 font-medium bg-gray-100" : "text-gray-400 hover:text-gray-700"}`}>
-                {tab}
-              </button>
-            ))}
+            <button onClick={() => router.push("/")} className="text-[13px] px-3.5 py-1.5 rounded-lg transition-colors text-gray-900 font-medium bg-gray-100">
+              Discover
+            </button>
+            <button
+              onClick={() => document.getElementById("categories-filter")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="text-[13px] px-3.5 py-1.5 rounded-lg transition-colors text-gray-400 hover:text-gray-700"
+            >
+              Categories
+            </button>
           </nav>
           <div className="flex-1 max-w-xs relative ml-2">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -237,7 +241,7 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            <div>
+            <div id="categories-filter" className="scroll-mt-20">
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Categories</p>
               <div className="space-y-1.5">
                 {ALL_CATEGORIES.map((cat) => (

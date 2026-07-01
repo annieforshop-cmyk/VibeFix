@@ -48,6 +48,7 @@ npm run dev
 - 新增单条灵感（`/admin/new`）
 - 批量导入：把审阅过的 Grok（或其他数据源）产出的 JSON 数组粘贴进导入框，一次性创建为草稿，再逐条发布
 - 发布 / 下架 / 删除
+- 审核社区提交（`/admin/submissions`）：查看用户通过「提交一个问题」表单提交的内容，通过后自动生成一条草稿（进入上面的灵感列表，还需手动发布），拒绝则仅标记状态
 
 没有默认账号——必须显式设置 `ADMIN_PASSWORD` 才能登录，未设置时 `/admin` 会拒绝所有登录请求。
 
@@ -71,4 +72,4 @@ npm run dev
 
 - `problems`：灵感卡片主表，`publish_status` 控制草稿/发布/下架，`detail` 为 jsonb，存放 `evidence`（关键词/原帖引用）、`market`（市场规模/竞品/变现模式/付费意愿）、`tech`（技术栈/周期/可复用模块）。
 - `collections`：匿名设备（cookie）对灵感的「感兴趣/收藏」记录，用于统计热度和收藏数。
-- `submissions`：社区提交的问题，待人工审核（当前版本仅落库，未接入审核流转 UI）。
+- `submissions`：社区提交的问题，`status` 控制待审核/已通过/已拒绝，在 `/admin/submissions` 中人工审核。
