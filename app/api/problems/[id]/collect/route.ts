@@ -5,7 +5,7 @@ import { toggleCollect } from "@/lib/collections";
 
 const DEVICE_COOKIE = "vibefx_device_id";
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const cookieStore = await cookies();
 
@@ -13,8 +13,11 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const isNewDevice = !deviceId;
   if (!deviceId) deviceId = randomUUID();
 
+  const body = await request.json().catch(() => null);
+  const wasCollected = body?.collected === true;
+
   try {
-    const result = await toggleCollect(deviceId, id);
+    const result = await toggleCollect(deviceId, id, wasCollected);
     const response = NextResponse.json(result);
     if (isNewDevice) {
       response.cookies.set(DEVICE_COOKIE, deviceId, {

@@ -28,7 +28,7 @@ export default function Image() {
             marginBottom: 32,
           }}
         >
-          未解 · Unresolved
+          VibeFix
         </div>
         <div
           style={{

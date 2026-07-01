@@ -101,7 +101,7 @@ export default function AdminNewProblemPage() {
     <div className="min-h-screen bg-[#f8f9f8]">
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center gap-4">
-          <span className="font-black text-[15px] text-[#0e6b4a]">未解 · 新增灵感</span>
+          <span className="font-black text-[15px] text-[#0e6b4a]">VibeFix · 新增灵感</span>
           <Link href="/admin" className="ml-auto text-[13px] text-gray-400 hover:text-gray-700 transition-colors">
             返回列表
           </Link>

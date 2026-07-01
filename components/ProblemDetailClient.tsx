@@ -55,7 +55,11 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
     setUpvoted(nextUpvoted);
     setCount((c) => (nextUpvoted ? c + 1 : c - 1));
     try {
-      const res = await fetch(`/api/problems/${problem.id}/collect`, { method: "POST" });
+      const res = await fetch(`/api/problems/${problem.id}/collect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collected: upvoted }),
+      });
       if (res.ok) {
         const data = await res.json();
         if (typeof data.count === "number") setCount(data.count);
@@ -84,7 +88,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
             返回
           </Link>
           <span className="text-gray-200">·</span>
-          <span className="text-sm font-black text-[#0e6b4a]">Unresolved</span>
+          <span className="text-sm font-black text-[#0e6b4a]">VibeFix</span>
         </div>
       </header>
 
@@ -301,7 +305,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
       {/* Footer */}
       <footer className="border-t border-gray-100 bg-white py-6 mt-16">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between">
-          <span className="text-sm font-black text-[#0e6b4a]">Unresolved</span>
+          <span className="text-sm font-black text-[#0e6b4a]">VibeFix</span>
           <span className="text-xs text-gray-400">Problems Worth Building For</span>
         </div>
       </footer>

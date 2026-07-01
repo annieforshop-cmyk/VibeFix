@@ -44,7 +44,11 @@ export default function ProblemCard({
     setInterested(next);
     setCount((c) => (next ? c + 1 : c - 1));
     try {
-      const res = await fetch(`/api/problems/${problem.id}/collect`, { method: "POST" });
+      const res = await fetch(`/api/problems/${problem.id}/collect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collected: interested }),
+      });
       if (res.ok) {
         const data = await res.json();
         if (typeof data.count === "number") setCount(data.count);
