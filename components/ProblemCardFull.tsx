@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Problem } from "@/lib/data";
 
 const CAT_COLORS: Record<string, string> = {
@@ -25,7 +25,6 @@ export default function ProblemCardFull({
   problem: Problem;
   index: number;
 }) {
-  const router = useRouter();
   const [interested, setInterested] = useState(false);
 
   const isHot = problem.upvotes >= HOT_THRESHOLD;
@@ -91,15 +90,16 @@ export default function ProblemCardFull({
               <p className="text-[10px] text-gray-400">2小时前发布</p>
             </div>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); router.push(`/problems/${problem.id}`); }}
+          <Link
+            href={`/problems/${problem.id}`}
+            onClick={(e) => e.stopPropagation()}
             className="text-[12px] font-semibold text-[#0e6b4a] flex items-center gap-1 hover:gap-2 transition-all"
           >
             详情
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M9 18l6-6-6-6" />
             </svg>
-          </button>
+          </Link>
         </div>
       </div>
     </div>
