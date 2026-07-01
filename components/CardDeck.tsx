@@ -4,6 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Problem } from "@/lib/data";
 import ProblemCardFull from "@/components/ProblemCardFull";
 
+function collectedKey(id: string) {
+  return `vibefix_collected_${id}`;
+}
+
 export default function CardDeck({ problems }: { problems: Problem[] }) {
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
@@ -11,6 +15,7 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
   const [busy, setBusy] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [collectedOverrides, setCollectedOverrides] = useState<Record<string, boolean>>({});
   const pointerStartX = useRef(0);
   const touchStartX = useRef(0);
   const touchStartTime = useRef(0);
@@ -22,6 +27,29 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
     setDragX(0);
     setDragging(false);
   }, [problems]);
+
+  const currentId = problems[current]?.id;
+  const collected =
+    currentId !== undefined
+      ? collectedOverrides[currentId] ??
+        (typeof window !== "undefined" && window.localStorage.getItem(collectedKey(currentId)) === "1")
+      : false;
+
+  async function toggleSave() {
+    const id = currentId;
+    if (!id) return;
+    setCollectedOverrides((o) => ({ ...o, [id]: !collected }));
+    try {
+      const res = await fetch(`/api/problems/${id}/collect`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        window.localStorage.setItem(collectedKey(id), data.collected ? "1" : "0");
+        setCollectedOverrides((o) => ({ ...o, [id]: !!data.collected }));
+      }
+    } catch {
+      // best-effort — keep optimistic local state on network failure
+    }
+  }
 
   const navigate = useCallback(
     (next: number) => {
@@ -172,11 +200,18 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
         </button>
 
         <button
+          onClick={toggleSave}
           aria-label="收藏"
-          className="w-14 h-14 rounded-full bg-white shadow-lg border border-teal-100 flex items-center justify-center text-teal-500 hover:bg-teal-50 transition-all active:scale-95"
+          className={`w-14 h-14 rounded-full bg-white shadow-lg border flex items-center justify-center transition-all active:scale-95 ${
+            collected ? "border-teal-300 text-teal-600 bg-teal-50" : "border-teal-100 text-teal-500 hover:bg-teal-50"
+          }`}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M12 5v14M5 12h14" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={collected ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
+            {collected ? (
+              <path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z" />
+            ) : (
+              <path d="M12 5v14M5 12h14" />
+            )}
           </svg>
         </button>
       </div>

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PROBLEMS } from "@/lib/data";
+import { getProblemBySlug } from "@/lib/problems";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import ProblemDetailClient from "@/components/ProblemDetailClient";
 
 type Params = { id: string };
 
-export function generateStaticParams(): Params[] {
-  return PROBLEMS.map((problem) => ({ id: problem.id }));
-}
+// Inspirations are refreshed daily via the admin pipeline, so this page is
+// rendered dynamically rather than statically generated at build time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const problem = PROBLEMS.find((p) => p.id === id);
+  const problem = await getProblemBySlug(id);
 
   if (!problem) {
     return { title: "找不到这个问题" };
@@ -51,7 +51,7 @@ export default async function ProblemDetailPage({
   params: Promise<Params>;
 }) {
   const { id } = await params;
-  const problem = PROBLEMS.find((p) => p.id === id);
+  const problem = await getProblemBySlug(id);
 
   if (!problem) {
     notFound();

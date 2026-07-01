@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PROBLEMS, ALL_CATEGORIES, Category, Difficulty } from "@/lib/data";
+import { ALL_CATEGORIES, Category, Difficulty, Problem } from "@/lib/data";
 import ProblemCard from "@/components/ProblemCard";
 import CardDeck from "@/components/CardDeck";
 import SubmitModal from "@/components/SubmitModal";
@@ -49,9 +49,27 @@ export default function Home() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [activeNav, setActiveNav]   = useState<NavTab>("discover");
   const [showSearch, setShowSearch] = useState(false);
+  const [problems, setProblems]     = useState<Problem[]>([]);
+  const [loading, setLoading]       = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/problems?limit=100&sort=hot")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setProblems(data.items ?? []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
-    let list = [...PROBLEMS];
+    let list = [...problems];
     if (selectedCategory)   list = list.filter((p) => p.category === selectedCategory);
     if (selectedDifficulty) list = list.filter((p) => p.difficulty === selectedDifficulty);
     if (search.trim()) {
@@ -66,11 +84,11 @@ export default function Home() {
     if (sortMode === "热门") return list.sort((a, b) => b.upvotes - a.upvotes);
     if (sortMode === "最新") return [...list].reverse();
     return list.sort(() => Math.random() - 0.5);
-  }, [selectedCategory, selectedDifficulty, sortMode, search]);
+  }, [problems, selectedCategory, selectedDifficulty, sortMode, search]);
 
   const hotProblems = useMemo(
-    () => [...PROBLEMS].sort((a, b) => b.upvotes - a.upvotes).slice(0, 5),
-    []
+    () => [...problems].sort((a, b) => b.upvotes - a.upvotes).slice(0, 5),
+    [problems]
   );
 
   function handleCategoryClick(cat: Category) {
@@ -171,7 +189,11 @@ export default function Home() {
               </div>
             </div>
           </div>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24 text-gray-300 gap-3">
+              <span className="text-sm text-gray-400">加载中...</span>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-gray-300 gap-3">
               <span className="text-sm text-gray-400">没有匹配的问题</span>
             </div>
@@ -250,11 +272,11 @@ export default function Home() {
           {/* Stats chips */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1.5">
-              <span className="text-white font-bold text-[13px]">{PROBLEMS.length}</span>
+              <span className="text-white font-bold text-[13px]">{problems.length}</span>
               <span className="text-white/70 text-[11px]">个问题</span>
             </div>
             <div className="flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1.5">
-              <span className="text-white font-bold text-[13px]">{PROBLEMS.filter(p => p.difficulty === "周末项目").length}</span>
+              <span className="text-white font-bold text-[13px]">{problems.filter(p => p.difficulty === "周末项目").length}</span>
               <span className="text-white/70 text-[11px]">周末可做</span>
             </div>
             <div className="flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1.5">
@@ -411,7 +433,11 @@ export default function Home() {
           {/* Grid mode */}
           {viewMode === "grid" && (
             <div className="grid grid-cols-2 gap-3 pb-6">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="col-span-2 flex flex-col items-center py-16 text-gray-300 gap-2">
+                  <span className="text-sm text-gray-400">加载中...</span>
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="col-span-2 flex flex-col items-center py-16 text-gray-300 gap-2">
                   <span className="text-3xl">🔍</span>
                   <span className="text-sm text-gray-400">没有匹配的问题</span>

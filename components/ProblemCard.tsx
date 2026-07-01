@@ -4,6 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { Problem } from "@/lib/data";
 
+function collectedKey(id: string) {
+  return `vibefix_collected_${id}`;
+}
+
 const HOT_THRESHOLD = 800;
 
 const CAT_COLORS: Record<string, string> = {
@@ -26,15 +30,29 @@ export default function ProblemCard({
   problem: Problem;
   featured?: boolean;
 }) {
-  const [interested, setInterested] = useState(false);
+  const [interested, setInterested] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem(collectedKey(problem.id)) === "1"
+  );
   const [count, setCount] = useState(problem.upvotes);
 
   const isHot = problem.upvotes >= HOT_THRESHOLD;
 
-  function handleInterested(e: React.MouseEvent) {
+  async function handleInterested(e: React.MouseEvent) {
     e.stopPropagation();
-    setCount((c) => (interested ? c - 1 : c + 1));
-    setInterested((v) => !v);
+    e.preventDefault();
+    const next = !interested;
+    setInterested(next);
+    setCount((c) => (next ? c + 1 : c - 1));
+    try {
+      const res = await fetch(`/api/problems/${problem.id}/collect`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.count === "number") setCount(data.count);
+        window.localStorage.setItem(collectedKey(problem.id), data.collected ? "1" : "0");
+      }
+    } catch {
+      // best-effort — keep optimistic local state on network failure
+    }
   }
 
   return (
