@@ -35,3 +35,18 @@ export async function isAdminRequest(): Promise<boolean> {
   const cookieStore = await cookies();
   return verifyAdminToken(cookieStore.get(ADMIN_COOKIE)?.value);
 }
+
+/** Verifies a request's `Authorization: Bearer <key>` header against
+ * INGEST_API_KEY — a separate, non-expiring secret for headless automation
+ * (e.g. a scheduled job posting daily pain-point data) that can't do the
+ * cookie-based admin login flow. */
+export function isValidIngestRequest(request: Request): boolean {
+  const expected = process.env.INGEST_API_KEY;
+  if (!expected) return false;
+  const auth = request.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return false;
+  const a = Buffer.from(token);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}

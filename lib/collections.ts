@@ -46,3 +46,21 @@ export async function toggleCollect(
 
   return { collected: !existing, count: count ?? 0 };
 }
+
+/** Lists the problem slugs (falling back to id) an identity (device or
+ * `user:<uuid>`) has collected — used to restore saved state for a
+ * logged-in user across devices. */
+export async function listCollectedIdentifiers(deviceId: string): Promise<string[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("collections")
+    .select("problems(slug, id)")
+    .eq("device_id", deviceId);
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as { problems: { slug: string | null; id: string } | null }[])
+    .map((row) => row.problems?.slug ?? row.problems?.id)
+    .filter((id): id is string => Boolean(id));
+}

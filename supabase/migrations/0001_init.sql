@@ -1,4 +1,4 @@
--- 未解 (VibeFx) — core schema
+-- VibeFix — core schema
 -- All application reads/writes go through the Next.js server (service-role key),
 -- so RLS is enabled with no anon policies as defense-in-depth rather than as the
 -- primary access-control layer.

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Problem } from "@/lib/data";
+import { getAccessToken } from "@/lib/supabase/client";
 
 function collectedKey(id: string) {
   return `vibefix_collected_${id}`;
@@ -44,9 +45,13 @@ export default function ProblemCard({
     setInterested(next);
     setCount((c) => (next ? c + 1 : c - 1));
     try {
+      const token = await getAccessToken();
       const res = await fetch(`/api/problems/${problem.id}/collect`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ collected: interested }),
       });
       if (res.ok) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CATEGORY_COLORS, Problem } from "@/lib/data";
+import { getAccessToken } from "@/lib/supabase/client";
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   周末项目:  "bg-green-50 text-green-700 border-green-100",
@@ -55,9 +56,13 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
     setUpvoted(nextUpvoted);
     setCount((c) => (nextUpvoted ? c + 1 : c - 1));
     try {
+      const token = await getAccessToken();
       const res = await fetch(`/api/problems/${problem.id}/collect`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ collected: upvoted }),
       });
       if (res.ok) {
