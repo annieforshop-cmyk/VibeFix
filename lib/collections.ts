@@ -1,13 +1,18 @@
 import { getSupabaseAdmin } from "./supabase/server";
 
 /** Toggles an anonymous device's "interested" mark on a problem.
- * Falls back to a no-op count of 0 when Supabase isn't configured. */
+ * Falls back to echoing the client's own optimistic toggle (no persisted
+ * count) when Supabase isn't configured, so the collect/save UI still
+ * works correctly in local dev and preview environments. */
 export async function toggleCollect(
   deviceId: string,
-  problemSlugOrId: string
-): Promise<{ collected: boolean; count: number }> {
+  problemSlugOrId: string,
+  wasCollected = false
+): Promise<{ collected: boolean; count: number | null }> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { collected: false, count: 0 };
+  // count: null signals "not persisted" so callers keep their own optimistic count
+  // instead of overwriting it with a fake zero.
+  if (!supabase) return { collected: !wasCollected, count: null };
 
   const { data: problem, error: problemError } = await supabase
     .from("problems")

@@ -1,6 +1,6 @@
-# 未解 · Wèi Jiě
+# VibeFix
 
-Unsolved — Problems Worth Building For
+Problems Worth Building For
 
 每天沉淀值得独立开发者动手的真实痛点：从社交平台抱怨中提炼出结构化的「灵感卡片」，标注痛点强度、技术难度和市场机会，帮助你找到值得全力以赴的方向。
 

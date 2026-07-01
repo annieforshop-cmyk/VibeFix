@@ -38,9 +38,14 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
   async function toggleSave() {
     const id = currentId;
     if (!id) return;
+    const wasCollected = collected;
     setCollectedOverrides((o) => ({ ...o, [id]: !collected }));
     try {
-      const res = await fetch(`/api/problems/${id}/collect`, { method: "POST" });
+      const res = await fetch(`/api/problems/${id}/collect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collected: wasCollected }),
+      });
       if (res.ok) {
         const data = await res.json();
         window.localStorage.setItem(collectedKey(id), data.collected ? "1" : "0");
@@ -90,7 +95,11 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
     if (!dragging) return;
     setDragging(false);
     const dx = e.clientX - pointerStartX.current;
-    if (Math.abs(dx) > 60) navigate(dx < 0 ? current + 1 : current - 1);
+    // dragging right (dx > 0) signals "interested" — save it, then always advance
+    if (Math.abs(dx) > 60) {
+      if (dx > 0) toggleSave();
+      navigate(current + 1);
+    }
     setDragX(0);
   }
 
@@ -102,7 +111,11 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
   function onTouchEnd(e: React.TouchEvent) {
     const dx = touchStartX.current - e.changedTouches[0].clientX;
     const dt = Date.now() - touchStartTime.current;
-    if (Math.abs(dx) > 40 && dt < 500) navigate(dx > 0 ? current + 1 : current - 1);
+    // swiping right (dx < 0) signals "interested" — save it, then always advance
+    if (Math.abs(dx) > 40 && dt < 500) {
+      if (dx < 0) toggleSave();
+      navigate(current + 1);
+    }
   }
 
   if (problems.length === 0) {
@@ -165,7 +178,7 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
             无感 »
           </div>
         )}
-        {dragging && dragX > 30 && current > 0 && (
+        {dragging && dragX > 30 && current < problems.length - 1 && (
           <div
             className="absolute left-5 top-1/2 -translate-y-1/2 z-30 bg-green-100 text-green-600 text-[12px] font-bold px-3 py-1.5 rounded-full pointer-events-none"
             style={{ opacity: Math.min(1, (dragX - 30) / 80) }}
@@ -189,8 +202,8 @@ export default function CardDeck({ problems }: { problems: Problem[] }) {
         </button>
 
         <button
-          onClick={() => navigate(current - 1)}
-          disabled={current === 0 || busy}
+          onClick={() => { toggleSave(); navigate(current + 1); }}
+          disabled={current === problems.length - 1 || busy}
           aria-label="感兴趣"
           className="w-16 h-16 rounded-full bg-[#0e6b4a] shadow-lg shadow-green-200 flex items-center justify-center text-white hover:bg-[#0a5a3d] disabled:opacity-30 transition-all active:scale-95"
         >

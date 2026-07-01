@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-[#f8f9f8] flex items-center justify-center px-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-        <h1 className="text-lg font-black text-[#0e6b4a] mb-1">未解 · 管理后台</h1>
+        <h1 className="text-lg font-black text-[#0e6b4a] mb-1">VibeFix · 管理后台</h1>
         <p className="text-xs text-gray-400 mb-6">输入管理密码以继续</p>
         <input
           type="password"

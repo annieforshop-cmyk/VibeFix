@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ALL_CATEGORIES, Category, Difficulty, Problem } from "@/lib/data";
 import ProblemCard from "@/components/ProblemCard";
 import CardDeck from "@/components/CardDeck";
@@ -12,6 +13,10 @@ type ViewMode = "card" | "grid";
 type NavTab = "discover" | "saved" | "profile";
 
 const DIFFICULTY_OPTS: Difficulty[] = ["周末项目", "1-3个月", "需要团队"];
+
+function collectedKey(id: string) {
+  return `vibefix_collected_${id}`;
+}
 
 const CAT_EMOJI: Record<string, string> = {
   效率工具: "⚡",
@@ -39,6 +44,62 @@ const CAT_BG: Record<string, string> = {
   健身健康: "bg-teal-50",
 };
 
+function MobileGridCard({ problem }: { problem: Problem }) {
+  const [saved, setSaved] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem(collectedKey(problem.id)) === "1"
+  );
+
+  async function handleSave(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    const next = !saved;
+    setSaved(next);
+    try {
+      const res = await fetch(`/api/problems/${problem.id}/collect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collected: saved }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        window.localStorage.setItem(collectedKey(problem.id), data.collected ? "1" : "0");
+        setSaved(!!data.collected);
+      }
+    } catch {
+      // best-effort — keep optimistic local state on network failure
+    }
+  }
+
+  return (
+    <div className="relative text-left bg-white border border-gray-100 rounded-2xl p-3.5 hover:border-[#0e6b4a]/30 hover:shadow-sm transition-all active:scale-95">
+      <Link href={`/problems/${problem.id}`} className="absolute inset-0 z-0 rounded-2xl" aria-label={problem.title} />
+      <div className="flex items-center gap-1 mb-2 flex-wrap">
+        {problem.upvotes >= 800 && (
+          <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">🔥</span>
+        )}
+        <span className="text-[9px] text-gray-400 ml-auto flex items-center gap-0.5">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          {problem.upvotes >= 1000 ? `${(problem.upvotes / 1000).toFixed(1)}k` : problem.upvotes}
+        </span>
+        <button
+          onClick={handleSave}
+          aria-label={saved ? "取消收藏" : "收藏"}
+          className={`relative z-10 w-5 h-5 flex items-center justify-center rounded-full transition-colors ${saved ? "text-[#0e6b4a]" : "text-gray-300 hover:text-gray-400"}`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+            <path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z" />
+          </svg>
+        </button>
+      </div>
+      <h3 className="text-[12px] font-bold text-gray-900 leading-snug line-clamp-3 mb-2">{problem.title}</h3>
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{problem.category}</span>
+        <span className="text-[9px] text-[#0e6b4a] font-medium">详情 →</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory]     = useState<Category | null>(null);
@@ -51,13 +112,17 @@ export default function Home() {
   const [showSearch, setShowSearch] = useState(false);
   const [problems, setProblems]     = useState<Problem[]>([]);
   const [loading, setLoading]       = useState(true);
+  const [savedIds, setSavedIds]     = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/problems?limit=100&sort=hot")
       .then((res) => res.json())
       .then((data) => {
-        if (!cancelled) setProblems(data.items ?? []);
+        if (cancelled) return;
+        const items: Problem[] = data.items ?? [];
+        setProblems(items);
+        setSavedIds(new Set(items.filter((p) => window.localStorage.getItem(collectedKey(p.id)) === "1").map((p) => p.id)));
       })
       .catch(() => {})
       .finally(() => {
@@ -91,6 +156,19 @@ export default function Home() {
     [problems]
   );
 
+  function refreshSavedIds() {
+    setSavedIds(
+      new Set(problems.filter((p) => window.localStorage.getItem(collectedKey(p.id)) === "1").map((p) => p.id))
+    );
+  }
+
+  function handleNavClick(nav: NavTab) {
+    if (nav === "saved") refreshSavedIds();
+    setActiveNav(nav);
+  }
+
+  const savedProblems = useMemo(() => problems.filter((p) => savedIds.has(p.id)), [problems, savedIds]);
+
   function handleCategoryClick(cat: Category) {
     setSelectedCategory(selectedCategory === cat ? null : cat);
     // scroll to problems section
@@ -103,7 +181,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-6">
           <button onClick={() => router.push("/")} className="shrink-0 font-black text-[17px] text-[#0e6b4a] tracking-tight">
-            Unresolved
+            VibeFix
           </button>
           <nav className="flex items-center gap-0.5">
             {(["Discover", "Categories", "Resources"] as const).map((tab) => (
@@ -209,13 +287,14 @@ export default function Home() {
 
       <footer className="border-t border-gray-100 bg-white py-5 mt-8">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <span className="text-[13px] font-black text-[#0e6b4a]">Unresolved</span>
+          <span className="text-[13px] font-black text-[#0e6b4a]">VibeFix</span>
           <div className="flex items-center gap-5">
-            {["About", "Contact", "Terms", "Privacy"].map((l) => (
-              <button key={l} className="text-[12px] text-gray-400 hover:text-gray-700 transition-colors">{l}</button>
-            ))}
+            <Link href="/about" className="text-[12px] text-gray-400 hover:text-gray-700 transition-colors">About</Link>
+            <Link href="/about#contact" className="text-[12px] text-gray-400 hover:text-gray-700 transition-colors">Contact</Link>
+            <Link href="/about#terms" className="text-[12px] text-gray-400 hover:text-gray-700 transition-colors">Terms</Link>
+            <Link href="/about#privacy" className="text-[12px] text-gray-400 hover:text-gray-700 transition-colors">Privacy</Link>
           </div>
-          <span className="text-[11px] text-gray-300">© 2024 Unresolved Platform</span>
+          <span className="text-[11px] text-gray-300">© 2026 VibeFix</span>
         </div>
       </footer>
     </div>
@@ -227,7 +306,7 @@ export default function Home() {
 
       {/* ── 顶部 Header ── */}
       <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
-        <span className="font-black text-[17px] text-[#0e6b4a]">Unresolved</span>
+        <button onClick={() => setActiveNav("discover")} className="font-black text-[17px] text-[#0e6b4a]">VibeFix</button>
         <div className="flex items-center gap-2">
           {showSearch ? (
             <div className="flex items-center gap-2">
@@ -259,8 +338,9 @@ export default function Home() {
       </header>
 
       {/* ── 可滚动主体 ── */}
-      <main className="flex-1 overflow-y-auto pb-20">
-
+      <main className="flex-1 overflow-y-auto" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
+      {activeNav === "discover" && (
+      <>
         {/* ① Hero */}
         <section className="bg-[#0e6b4a] px-5 pt-7 pb-8">
           <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-2">为独立开发者精选</p>
@@ -443,36 +523,91 @@ export default function Home() {
                   <span className="text-sm text-gray-400">没有匹配的问题</span>
                 </div>
               ) : (
-                filtered.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => router.push(`/problems/${p.id}`)}
-                    className="text-left bg-white border border-gray-100 rounded-2xl p-3.5 hover:border-[#0e6b4a]/30 hover:shadow-sm transition-all active:scale-95"
-                  >
-                    <div className="flex items-center gap-1 mb-2 flex-wrap">
-                      {p.upvotes >= 800 && (
-                        <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">🔥</span>
-                      )}
-                      <span className="text-[9px] text-gray-400 ml-auto flex items-center gap-0.5">
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                        {p.upvotes >= 1000 ? `${(p.upvotes / 1000).toFixed(1)}k` : p.upvotes}
-                      </span>
-                    </div>
-                    <h3 className="text-[12px] font-bold text-gray-900 leading-snug line-clamp-3 mb-2">{p.title}</h3>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{p.category}</span>
-                      <span className="text-[9px] text-[#0e6b4a] font-medium">详情 →</span>
-                    </div>
-                  </button>
-                ))
+                filtered.map((p) => <MobileGridCard key={p.id} problem={p} />)
               )}
             </div>
           )}
         </section>
+      </>
+      )}
+
+      {activeNav === "saved" && (
+        <section className="px-4 pt-5 pb-8">
+          <h2 className="text-[15px] font-bold text-gray-900 mb-1">⭐ 我的收藏</h2>
+          <p className="text-[11px] text-gray-400 mb-4">{savedProblems.length} 个已收藏的问题</p>
+          {savedProblems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-300 gap-3">
+              <span className="text-3xl">⭐</span>
+              <span className="text-sm text-gray-400">还没有收藏的问题</span>
+              <button
+                onClick={() => setActiveNav("discover")}
+                className="mt-2 text-[12px] font-semibold px-4 py-2 rounded-full bg-[#0e6b4a] text-white active:scale-95 transition-all"
+              >
+                去探索
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {savedProblems.map((p) => <MobileGridCard key={p.id} problem={p} />)}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeNav === "profile" && (
+        <section className="px-4 pt-6 pb-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-full bg-[#0e6b4a] flex items-center justify-center text-white font-black text-lg shrink-0">V</div>
+            <div>
+              <p className="text-[15px] font-bold text-gray-900">VibeFix 探索者</p>
+              <p className="text-[11px] text-gray-400">{savedProblems.length} 个收藏 · {problems.length} 个问题库</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowSubmit(true)}
+            className="w-full mb-6 flex items-center justify-center gap-2 text-[13px] font-semibold py-3 rounded-2xl bg-[#0e6b4a] text-white active:scale-95 transition-all"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+            提交一个问题
+          </button>
+
+          <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden mb-6">
+            {[
+              { label: "关于 VibeFix", href: "/about" },
+              { label: "联系我们", href: "/about#contact" },
+              { label: "服务条款", href: "/about#terms" },
+              { label: "隐私政策", href: "/about#privacy" },
+            ].map((item, i, arr) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-4 py-3.5 text-[13px] text-gray-700 active:bg-gray-50 transition-colors ${i !== arr.length - 1 ? "border-b border-gray-50" : ""}`}
+              >
+                {item.label}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300"><path d="M9 18l6-6-6-6" /></svg>
+              </Link>
+            ))}
+          </div>
+
+          <div className="bg-[#0e6b4a] rounded-2xl p-5">
+            <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-2">我们的愿景</p>
+            <p className="text-[14px] text-white leading-relaxed">
+              让每一个愿意行动的人，都能找到一个值得他全力以赴的方向。
+            </p>
+            <Link href="/about#vision" className="inline-block mt-3 text-[12px] text-white/70 underline">
+              阅读完整愿景 →
+            </Link>
+          </div>
+        </section>
+      )}
       </main>
 
       {/* ── 底部导航 ── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-2 flex items-center justify-around z-40 md:hidden">
+      <nav
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 pt-2 flex items-center justify-around z-40 md:hidden"
+        style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      >
         {(["discover", "saved", "profile"] as NavTab[]).map((nav) => {
           const icons: Record<NavTab, React.ReactNode> = {
             discover: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
@@ -482,7 +617,7 @@ export default function Home() {
           const labels: Record<NavTab, string> = { discover: "探索", saved: "收藏", profile: "我的" };
           const active = activeNav === nav;
           return (
-            <button key={nav} onClick={() => setActiveNav(nav)} className="flex flex-col items-center gap-0.5 py-1">
+            <button key={nav} onClick={() => handleNavClick(nav)} className="flex flex-col items-center gap-0.5 py-1">
               <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "#0e6b4a" : "none"} stroke={active ? "#0e6b4a" : "#9ca3af"} strokeWidth="2">
                 {icons[nav]}
               </svg>
