@@ -7,6 +7,9 @@ import { ALL_CATEGORIES, Category, Difficulty, Problem } from "@/lib/data";
 import ProblemCard from "@/components/ProblemCard";
 import CardDeck from "@/components/CardDeck";
 import SubmitModal from "@/components/SubmitModal";
+import AuthModal from "@/components/AuthModal";
+import { useAuthUser } from "@/lib/useAuthUser";
+import { getAccessToken, getSupabaseBrowser } from "@/lib/supabase/client";
 
 type SortMode = "热门" | "最新" | "随机";
 type ViewMode = "card" | "grid";
@@ -55,9 +58,13 @@ function MobileGridCard({ problem }: { problem: Problem }) {
     const next = !saved;
     setSaved(next);
     try {
+      const token = await getAccessToken();
       const res = await fetch(`/api/problems/${problem.id}/collect`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ collected: saved }),
       });
       if (res.ok) {
@@ -113,6 +120,8 @@ export default function Home() {
   const [problems, setProblems]     = useState<Problem[]>([]);
   const [loading, setLoading]       = useState(true);
   const [savedIds, setSavedIds]     = useState<Set<string>>(new Set());
+  const [showAuth, setShowAuth]     = useState(false);
+  const { user } = useAuthUser();
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +141,36 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  // Once logged in, merge the account's collected list (synced from Supabase,
+  // consistent across devices) into the locally-tracked saved ids.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const token = await getAccessToken();
+      if (!token) return;
+      try {
+        const res = await fetch("/api/me/collections", { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const ids: string[] = data.ids ?? [];
+        if (cancelled) return;
+        ids.forEach((id) => window.localStorage.setItem(collectedKey(id), "1"));
+        setSavedIds((prev) => new Set([...prev, ...ids]));
+      } catch {
+        // best-effort — local saved state still works without this
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function handleSignOut() {
+    const supabase = getSupabaseBrowser();
+    await supabase?.auth.signOut();
+  }
 
   const filtered = useMemo(() => {
     let list = [...problems];
@@ -205,7 +244,18 @@ export default function Home() {
             <button onClick={() => setShowSubmit(true)} className="text-[13px] font-semibold px-4 py-1.5 rounded-full bg-[#0e6b4a] text-white hover:bg-[#0a5a3d] transition-colors">
               Submit Problem
             </button>
-            <button className="text-[13px] text-gray-500 hover:text-gray-800 transition-colors">Sign In</button>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] text-gray-500 max-w-[10rem] truncate">{user.email}</span>
+                <button onClick={handleSignOut} className="text-[13px] text-gray-400 hover:text-gray-800 transition-colors">
+                  退出
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setShowAuth(true)} className="text-[13px] text-gray-500 hover:text-gray-800 transition-colors">
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -561,11 +611,22 @@ export default function Home() {
       {activeNav === "profile" && (
         <section className="px-4 pt-6 pb-10">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-[#0e6b4a] flex items-center justify-center text-white font-black text-lg shrink-0">V</div>
-            <div>
-              <p className="text-[15px] font-bold text-gray-900">VibeFix 探索者</p>
+            <div className="w-12 h-12 rounded-full bg-[#0e6b4a] flex items-center justify-center text-white font-black text-lg shrink-0">
+              {user ? user.email?.[0]?.toUpperCase() : "V"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-bold text-gray-900 truncate">{user ? user.email : "VibeFix 探索者"}</p>
               <p className="text-[11px] text-gray-400">{savedProblems.length} 个收藏 · {problems.length} 个问题库</p>
             </div>
+            {user ? (
+              <button onClick={handleSignOut} className="shrink-0 text-[12px] text-gray-400 border border-gray-200 rounded-full px-3 py-1.5">
+                退出登录
+              </button>
+            ) : (
+              <button onClick={() => setShowAuth(true)} className="shrink-0 text-[12px] font-semibold text-white bg-[#0e6b4a] rounded-full px-3 py-1.5">
+                登录 / 注册
+              </button>
+            )}
           </div>
 
           <button
@@ -640,6 +701,7 @@ export default function Home() {
       <DesktopLayout />
       <MobileLayout />
       {showSubmit && <SubmitModal onClose={() => setShowSubmit(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   );
 }

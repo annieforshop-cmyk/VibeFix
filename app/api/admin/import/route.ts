@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
-import { isAdminRequest } from "@/lib/admin-auth";
+import { isAdminRequest, isValidIngestRequest } from "@/lib/admin-auth";
 import { createProblem, ProblemInput } from "@/lib/problems";
 
 /**
- * Bulk-import inspiration cards (e.g. pasted from a reviewed Grok export).
+ * Bulk-import inspiration cards — either pasted by an admin in /admin/new,
+ * or posted by an automated daily pipeline (e.g. a scheduled job that pulls
+ * a Grok report and structures it into this shape) authenticated with
+ * `Authorization: Bearer <INGEST_API_KEY>` instead of the admin cookie.
  * Body: { items: ProblemInput[] }. Everything is created as a draft so it
  * still needs a manual publish step in /admin.
  */
 export async function POST(request: Request) {
-  if (!(await isAdminRequest())) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  const authorized = (await isAdminRequest()) || isValidIngestRequest(request);
+  if (!authorized) return NextResponse.json({ error: "未登录" }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const items = Array.isArray(body?.items) ? (body.items as ProblemInput[]) : null;
