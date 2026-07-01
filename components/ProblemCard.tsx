@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Problem } from "@/lib/data";
 
 const HOT_THRESHOLD = 800;
@@ -26,7 +26,6 @@ export default function ProblemCard({
   problem: Problem;
   featured?: boolean;
 }) {
-  const router = useRouter();
   const [interested, setInterested] = useState(false);
   const [count, setCount] = useState(problem.upvotes);
 
@@ -40,11 +39,16 @@ export default function ProblemCard({
 
   return (
     <div
-      onClick={() => router.push(`/problems/${problem.id}`)}
-      className={`group relative flex flex-col bg-white border border-gray-100 rounded-2xl p-5 cursor-pointer hover:border-gray-200 hover:shadow-md transition-all duration-200 ${
+      className={`group relative flex flex-col bg-white border border-gray-100 rounded-2xl p-5 hover:border-gray-200 hover:shadow-md transition-all duration-200 ${
         featured ? "sm:col-span-2" : ""
       }`}
     >
+      <Link
+        href={`/problems/${problem.id}`}
+        className="absolute inset-0 z-0 rounded-2xl"
+        aria-label={problem.title}
+      />
+
       {/* Top badges */}
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
         {isHot && (
@@ -112,7 +116,7 @@ export default function ProblemCard({
         </div>
         <button
           onClick={handleInterested}
-          className={`text-[12px] font-semibold px-3.5 py-1.5 rounded-full transition-all duration-150 shrink-0 ${
+          className={`relative z-10 text-[12px] font-semibold px-3.5 py-1.5 rounded-full transition-all duration-150 shrink-0 ${
             interested
               ? "bg-[#0e6b4a] text-white"
               : "border border-[#0e6b4a] text-[#0e6b4a] hover:bg-[#0e6b4a] hover:text-white"
