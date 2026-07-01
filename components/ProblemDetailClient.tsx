@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PROBLEMS, CATEGORY_COLORS, Problem } from "@/lib/data";
+import { CATEGORY_COLORS, Problem } from "@/lib/data";
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   周末项目:  "bg-green-50 text-green-700 border-green-100",
@@ -22,11 +22,52 @@ const STATUS_STYLES: Record<string, string> = {
   部分解决: "bg-yellow-50 text-yellow-700",
 };
 
+function collectedKey(id: string) {
+  return `vibefix_collected_${id}`;
+}
+
 export default function ProblemDetailClient({ problem }: { problem: Problem }) {
-  const [upvoted, setUpvoted] = useState(false);
+  const [upvoted, setUpvoted] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem(collectedKey(problem.id)) === "1"
+  );
   const [count, setCount] = useState(problem.upvotes);
   const [building, setBuilding] = useState(false);
   const [builderCount] = useState(Math.floor(problem.upvotes * 0.12));
+  const [related, setRelated] = useState<Problem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/problems?category=${encodeURIComponent(problem.category)}&limit=6`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        const items = ((data.items ?? []) as Problem[]).filter((p) => p.id !== problem.id).slice(0, 3);
+        setRelated(items);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [problem.category, problem.id]);
+
+  async function handleCollectClick() {
+    const nextUpvoted = !upvoted;
+    setUpvoted(nextUpvoted);
+    setCount((c) => (nextUpvoted ? c + 1 : c - 1));
+    try {
+      const res = await fetch(`/api/problems/${problem.id}/collect`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.count === "number") setCount(data.count);
+        window.localStorage.setItem(collectedKey(problem.id), data.collected ? "1" : "0");
+      }
+    } catch {
+      // best-effort — keep optimistic local state on network failure
+    }
+  }
+
+  const evidence = problem.detail?.evidence;
+  const market = problem.detail?.market;
 
   return (
     <div className="min-h-screen bg-[#f8f9f8]">
@@ -67,6 +108,11 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
             </svg>
             {count.toLocaleString()} 关注
           </span>
+          {typeof problem.complaintCount === "number" && (
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              📊 {problem.complaintCount} 条真实抱怨
+            </span>
+          )}
         </div>
 
         {/* Title */}
@@ -85,6 +131,16 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
           <span className={`text-xs px-3 py-1 rounded-full font-medium ${AI_STYLES[problem.aiPotential]}`}>
             AI 可解性 {problem.aiPotential}
           </span>
+          {typeof problem.painScore === "number" && (
+            <span className="text-xs px-3 py-1 rounded-full font-medium bg-rose-50 text-rose-600">
+              🎯 痛点强度 {problem.painScore}/10
+            </span>
+          )}
+          {typeof problem.growthRate === "number" && problem.growthRate !== 0 && (
+            <span className="text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-700">
+              近30天 +{problem.growthRate}%
+            </span>
+          )}
         </div>
 
         {/* Content sections */}
@@ -93,6 +149,33 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">问题描述</h2>
             <p className="text-gray-700 leading-relaxed text-[15px]">{problem.description}</p>
           </section>
+
+          {(evidence?.keywords?.length || evidence?.quotes?.length) ? (
+            <section>
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">📊 数据证据</h2>
+              <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-4">
+                {!!evidence?.keywords?.length && (
+                  <div className="flex flex-wrap gap-2">
+                    {evidence.keywords.map((kw) => (
+                      <span key={kw} className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
+                        #{kw}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {!!evidence?.quotes?.length && (
+                  <div className="space-y-2">
+                    {evidence.quotes.map((q, i) => (
+                      <blockquote key={i} className="text-[13px] text-gray-600 border-l-2 border-gray-200 pl-3 italic">
+                        “{q.text}”
+                        <span className="not-italic text-gray-400"> — {q.author}</span>
+                      </blockquote>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : null}
 
           <section>
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">目标用户</h2>
@@ -108,6 +191,26 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
             </div>
           </section>
 
+          {market && (market.market_size || market.competitors?.length || market.monetization?.length || market.willingness_to_pay) ? (
+            <section>
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">💰 市场机会</h2>
+              <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3 text-[14px] text-gray-700">
+                {market.market_size && (
+                  <p><span className="font-semibold text-gray-500">市场规模：</span>{market.market_size}</p>
+                )}
+                {!!market.competitors?.length && (
+                  <p><span className="font-semibold text-gray-500">现有竞品：</span>{market.competitors.join("、")}</p>
+                )}
+                {!!market.monetization?.length && (
+                  <p><span className="font-semibold text-gray-500">变现模式：</span>{market.monetization.join("、")}</p>
+                )}
+                {market.willingness_to_pay && (
+                  <p><span className="font-semibold text-gray-500">付费意愿：</span>{market.willingness_to_pay}</p>
+                )}
+              </div>
+            </section>
+          ) : null}
+
           <section>
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">技术方向参考</h2>
             <div className="flex flex-wrap gap-2">
@@ -120,6 +223,9 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
                 </span>
               ))}
             </div>
+            {problem.detail?.tech?.timeline && (
+              <p className="text-[13px] text-gray-400 mt-3">预计开发周期：{problem.detail.tech.timeline}</p>
+            )}
           </section>
 
           {problem.source && (
@@ -150,10 +256,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
                 {building ? "取消" : "👋 我来做这个"}
               </button>
               <button
-                onClick={() => {
-                  setCount((c) => (upvoted ? c - 1 : c + 1));
-                  setUpvoted(!upvoted);
-                }}
+                onClick={handleCollectClick}
                 className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold transition-all border ${
                   upvoted
                     ? "bg-green-50 text-[#0e6b4a] border-green-200"
@@ -170,32 +273,29 @@ export default function ProblemDetailClient({ problem }: { problem: Problem }) {
         </div>
 
         {/* Related */}
-        <div className="mt-12">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">同类问题</h2>
-          <div className="space-y-3">
-            {PROBLEMS.filter((p) => p.category === problem.category && p.id !== problem.id)
-              .slice(0, 2)
-              .concat(PROBLEMS.filter((p) => p.id !== problem.id).slice(0, 2))
-              .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i)
-              .slice(0, 3)
-              .map((related) => (
+        {related.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">同类问题</h2>
+            <div className="space-y-3">
+              {related.map((r) => (
                 <Link
-                  key={related.id}
-                  href={`/problems/${related.id}`}
+                  key={r.id}
+                  href={`/problems/${r.id}`}
                   className="block w-full text-left bg-white border border-gray-100 rounded-xl px-4 py-3 hover:border-[#0e6b4a]/30 hover:shadow-sm transition-all group"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors line-clamp-1">
-                      {related.title}
+                      {r.title}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${CATEGORY_COLORS[related.category]}`}>
-                      {related.category}
+                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${CATEGORY_COLORS[r.category]}`}>
+                      {r.category}
                     </span>
                   </div>
                 </Link>
               ))}
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* Footer */}

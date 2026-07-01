@@ -14,6 +14,30 @@ export type Status = "无人在做" | "有人在做" | "部分解决";
 export type AIPotential = "高" | "中" | "低";
 export type Difficulty = "周末项目" | "1-3个月" | "需要团队";
 
+export interface ProblemQuote {
+  text: string;
+  author: string;
+  url?: string;
+}
+
+export interface ProblemDetail {
+  evidence?: {
+    keywords?: string[];
+    quotes?: ProblemQuote[];
+  };
+  market?: {
+    market_size?: string;
+    competitors?: string[];
+    monetization?: string[];
+    willingness_to_pay?: string;
+  };
+  tech?: {
+    stack?: string[];
+    timeline?: string;
+    reusable_modules?: string[];
+  };
+}
+
 export interface Problem {
   id: string;
   title: string;
@@ -33,6 +57,13 @@ export interface Problem {
   views: number;
   submittedBy: "创始人精选" | "社区提交";
   source?: string;
+  // Data-backed evidence fields (populated once a real inspiration pipeline
+  // feeds Supabase; undefined for the bundled static fallback data).
+  painScore?: number;
+  complaintCount?: number;
+  growthRate?: number;
+  sourceLinks?: string[];
+  detail?: ProblemDetail;
 }
 
 export const CATEGORY_COLORS: Record<Category, string> = {
